@@ -61,12 +61,10 @@ namespace eka2l1::epoc::adapter {
         }
 
         bool get_face_attrib(const std::size_t idx, open_font_face_attrib &face_attrib) override;
-        bool get_glyph_metric(const std::size_t idx, std::uint32_t code,
-            open_font_character_metric &character_metric, const std::int32_t baseline_horz_off,
-            const std::uint32_t metric_identifier) override;
 
         std::uint8_t *get_glyph_bitmap(const std::size_t idx, std::uint32_t code, const std::uint32_t metric_identifier,
-            int *rasterized_width, int *rasterized_height, std::uint32_t &total_size, epoc::glyph_bitmap_type *bmp_type) override;
+            int *rasterized_width, int *rasterized_height, std::uint32_t &total_size, epoc::glyph_bitmap_type *bmp_type,
+            open_font_character_metric &character_metric) override;
 
         void free_glyph_bitmap(std::uint8_t *data) override;
 
@@ -90,6 +88,6 @@ namespace eka2l1::epoc::adapter {
 
         bool has_character(const std::size_t face_index, const std::int32_t codepoint, const std::uint32_t metric_identifier) override;
         std::optional<open_font_metrics> get_nearest_supported_metric(const std::size_t face_index, const std::uint16_t targeted_font_size,
-            std::uint32_t *metric_identifier = nullptr) override;
+            std::uint32_t *metric_identifier = nullptr, bool is_design_font_size = true) override;
     };
 }

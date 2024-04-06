@@ -145,7 +145,8 @@ namespace eka2l1::epoc::adapter {
         return true;
     }
 
-    std::optional<open_font_metrics> stb_font_file_adapter::get_nearest_supported_metric(const std::size_t idx, const std::uint16_t target_font_size, std::uint32_t *metric_identifier) {
+    std::optional<open_font_metrics> stb_font_file_adapter::get_nearest_supported_metric(const std::size_t idx, const std::uint16_t target_font_size, std::uint32_t *metric_identifier,
+        bool is_design_font_size) {
         int off = 0;
         stbtt_fontinfo *info = get_or_create_info(static_cast<int>(idx), &off);
 
@@ -192,9 +193,9 @@ namespace eka2l1::epoc::adapter {
         return stbtt_FindGlyphIndex(info, code) != 0;
     }
 
-    std::uint8_t *stb_font_file_adapter::get_glyph_bitmap(const std::size_t idx, std::uint32_t code,
-        const std::uint32_t metric_identifier, int *rasterized_width, int *rasterized_height,
-        std::uint32_t &total_size, epoc::glyph_bitmap_type *bmp_type) {
+    std::uint8_t *stb_font_file_adapter::get_glyph_bitmap(const std::size_t idx, std::uint32_t code, const std::uint32_t metric_identifier,
+        int *rasterized_width, int *rasterized_height, std::uint32_t &total_size, epoc::glyph_bitmap_type *bmp_type,
+        open_font_character_metric &character_metric) {
         bool get_codepoint = true;
         const std::uint32_t font_size = metric_identifier;
 
@@ -238,35 +239,8 @@ namespace eka2l1::epoc::adapter {
             total_size = *rasterized_width * *rasterized_height;
         }
 
-        return result;
-    }
-
-    bool stb_font_file_adapter::get_glyph_metric(const std::size_t idx, std::uint32_t code, open_font_character_metric &character_metric, const std::int32_t baseline_horz_off,
-        const std::uint32_t metric_identifier) {
-        const std::uint32_t font_size = metric_identifier;
-        bool get_codepoint = true;
-
-        if (code & 0x80000000) {
-            // It's truly the glyph index.
-            code &= ~0x80000000;
-            get_codepoint = false;
-        }
-
-        if (code == 0) {
-            // Fallback character.
-            code = '?';
-        }
-
-        int off = 0;
-        stbtt_fontinfo *info = get_or_create_info(static_cast<int>(idx), &off);
-
-        if (!info) {
-            return false;
-        }
-
         int adv_width = 0;
         int left_side_bearing = 0;
-        int x0, x1, y0, y1 = 0;
 
         if (get_codepoint) {
             stbtt_GetCodepointHMetrics(info, static_cast<int>(code), &adv_width, &left_side_bearing);
@@ -275,8 +249,6 @@ namespace eka2l1::epoc::adapter {
             stbtt_GetGlyphHMetrics(info, static_cast<int>(code), &adv_width, &left_side_bearing);
             stbtt_GetGlyphBox(info, static_cast<int>(code), &x0, &y0, &x1, &y1);
         }
-
-        const float scale_factor = stbtt_ScaleForPixelHeight(info, static_cast<float>(font_size));
 
         float scaled_x0 = std::floor(static_cast<float>(x0) * scale_factor);
         float scaled_y0 = std::floor(static_cast<float>(-y1) * scale_factor);
@@ -299,22 +271,24 @@ namespace eka2l1::epoc::adapter {
         // Calculate vertical advance by char_ascent - char_descent + linegap
         character_metric.vertical_advance = static_cast<std::int16_t>(scaled_y1 - scaled_y0 + linegap * scale_factor);
         character_metric.horizontal_bearing_y = static_cast<std::int16_t>(scaled_y1);
+        character_metric.horizontal_bearing_y = static_cast<std::int16_t>(scaled_y1);
 
         // Not caring about vertical placement right now (text placement)
         character_metric.vertical_bearing_y = 0;
         character_metric.vertical_bearing_x = 0;
 
-        return true;
+        return result;
     }
 
-    std::uint32_t stb_font_file_adapter::line_gap(const std::size_t idx) {
+    std::uint32_t stb_font_file_adapter::line_gap(const std::size_t idx, const std::uint32_t metric_identifier) {
         int ascent, descent, linegap = 0;
         int off = 0;
 
         stbtt_fontinfo *info = get_or_create_info(static_cast<int>(idx), &off);
         stbtt_GetFontVMetrics(info, &ascent, &descent, &linegap);
 
-        return linegap;
+        const float scale_factor = stbtt_ScaleForPixelHeight(info, static_cast<float>(metric_identifier));
+        return static_cast<std::uint32_t>(linegap * scale_factor);
     }
 
     void stb_font_file_adapter::free_glyph_bitmap(std::uint8_t *data) {
