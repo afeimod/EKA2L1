@@ -34,6 +34,20 @@ namespace eka2l1 {
     static constexpr const char *LOG_FILTER_DEBUG_PRESET = "*:trace";
 }
 
+namespace eka2l1::config_state {
+public:
+    // 在类定义中添加以下成员
+    std::string background_path;
+    int background_mode = 0; // 0=Center, 1=Stretch, 2=Tile
+
+    // 添加序列化支持
+    void serialize(common::chunkyseri &seri) {
+        // ... 已有配置项
+        seri.absorb(background_path);
+        seri.absorb(background_mode);
+    }
+};
+
 namespace eka2l1::config {
     static constexpr const char *KEYBIND_TYPE_KEY = "key";
     static constexpr const char *KEYBIND_TYPE_CONTROLLER = "controller";
