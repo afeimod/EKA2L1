@@ -119,6 +119,17 @@ namespace eka2l1::config {
         emitter << YAML::EndSeq;
     }
 
+   namespace eka2l1::string get_background_image_path() const {
+       return conf.current_state.background_path;
+    }
+
+   void set_background_image_path(const std::string &path) {
+       conf.current_state.background_path = path;
+       conf.serialize();
+    }
+
+// 类似添加background_mode的getter/setter
+
     void config_file_emit_keybind(YAML::Emitter &emitter, const keybind &kb) {
         emitter << YAML::BeginMap;
         emitter << YAML::Key << "source" << YAML::Value;
